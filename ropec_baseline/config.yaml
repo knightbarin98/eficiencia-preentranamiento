@@ -55,6 +55,23 @@ eval:
     n_boot: 2000               # bootstrap pareado remuestreando PACIENTES completos
     ci: 0.95
 
+# --- QC (criterios CONGELADOS antes de mirar métricas) ----------------------------
+qc:
+  min_resolution: 256          # min(H,W) admitido en OriginalImage
+  dup_hamming_threshold: 5     # pHash 64-bit; distancia <= => near-duplicate
+  # Alcance de deduplicación:
+  #   cross_patient (recomendado): solo duplicados ENTRE pacientes = riesgo de fuga.
+  #     Los folds son por paciente, así que duplicados intra-paciente (contralateral
+  #     o multi-vista de la misma rodilla) NO causan fuga y son datos legítimos.
+  #   all: también intra-paciente (footgun: el pHash colapsa rodillas contralaterales
+  #     en radiografías y borra negativos legítimos). No usar sin revisar.
+  dup_scope: cross_patient
+  check_mask_concordance: true # BW presente, misma forma, ni vacía ni llena
+  # Exclusiones clínicas/subjetivas: NO auto-detectables. Se congelan por revisión
+  # manual (revisor clínico). CSV opcional con columnas patient_id,view,criterio.
+  # Vacío/nulo => sin exclusiones manuales (no se inventan).
+  manual_exclusions_csv: null
+
 # --- Dataset juguete (solo mode: toy) ---------------------------------------------
 toy:
   n_patients: 40
