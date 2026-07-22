@@ -321,15 +321,36 @@ class ViewDataset:
     IMAGENET_MEAN = (0.485, 0.456, 0.406)
     IMAGENET_STD = (0.229, 0.224, 0.225)
 
-    def __init__(self, index_df: pd.DataFrame, cfg: dict, mode: str = "toy"):
+    def __init__(self, index_df: pd.DataFrame, cfg: dict, mode: str = "toy",
+                 train: bool = False):
         import torch  # import perezoso para no exigir torch al construir el índice
 
         self._torch = torch
         self.df = index_df.reset_index(drop=True)
         self.mode = mode
+        self.train = train
         self.img_size = int(cfg["model"]["img_size"])
         self._struct_cache: dict[str, object] = {}  # cache pequeño por path (mat_struct)
         self._cache_order: list[str] = []
+
+        # Augmentation train-only (idéntico para todos los comparadores).
+        self._aug = None
+        acfg = cfg.get("augment", {})
+        if train and mode == "real" and acfg.get("enabled", False):
+            import torchvision.transforms as T
+
+            self._aug = T.Compose([
+                T.RandomHorizontalFlip(p=float(acfg.get("hflip_p", 0.5))),
+                T.RandomAffine(
+                    degrees=float(acfg.get("rotation_deg", 0)),
+                    scale=tuple(acfg.get("scale_range", [1.0, 1.0])),
+                    fill=0.0,  # fondo negro (radiografía) en las esquinas
+                ),
+                T.ColorJitter(
+                    brightness=float(acfg.get("brightness", 0.0)),
+                    contrast=float(acfg.get("contrast", 0.0)),
+                ),
+            ])
 
     def __len__(self) -> int:
         return len(self.df)
@@ -353,15 +374,15 @@ class ViewDataset:
                 self._struct_cache.pop(old, None)
         return self._struct_cache[mat_path]
 
-    def _real_image(self, mat_path: str, view: str):
-        """OriginalImage -> tensor 3xSxS normalizado (ImageNet stats, compartido)."""
+    def _base_image(self, mat_path: str, view: str):
+        """OriginalImage -> tensor 1xSxS en [0,1] (pre-augmentation). Cacheado."""
         torch = self._torch
         import torch.nn.functional as F
 
         cache_key = (mat_path, view, self.img_size)
         cached = _REAL_IMAGE_CACHE.get(cache_key)
         if cached is not None:
-            return cached.clone()
+            return cached  # solo-lectura; la augmentation crea tensores nuevos
 
         struct = self._get_struct(mat_path)
         img = read_view_image(struct, view)  # HxW float32
@@ -372,13 +393,23 @@ class ViewDataset:
         img = np.clip((img - lo) / (hi - lo), 0.0, 1.0).astype(np.float32)
         t = torch.from_numpy(img)[None, None]  # 1,1,H,W
         t = F.interpolate(t, size=(self.img_size, self.img_size), mode="bilinear",
-                          align_corners=False)[0, 0]
-        t = t.repeat(3, 1, 1)  # 3,S,S
+                          align_corners=False)[0]  # 1,S,S
+        _REAL_IMAGE_CACHE[cache_key] = t
+        return t
+
+    def _finalize(self, x_1hw):
+        """1xSxS [0,1] -> 3xSxS normalizado ImageNet (preproc compartida)."""
+        torch = self._torch
+        t = x_1hw.clamp(0.0, 1.0).repeat(3, 1, 1)  # 3,S,S
         mean = torch.tensor(self.IMAGENET_MEAN).view(3, 1, 1)
         std = torch.tensor(self.IMAGENET_STD).view(3, 1, 1)
-        out = (t - mean) / std
-        _REAL_IMAGE_CACHE[cache_key] = out
-        return out.clone()
+        return (t - mean) / std
+
+    def _real_image(self, mat_path: str, view: str):
+        base = self._base_image(mat_path, view)  # 1,S,S cacheado (solo-lectura)
+        if self._aug is not None:
+            base = self._aug(base)  # augmentation train-only -> tensor nuevo
+        return self._finalize(base)
 
     def __getitem__(self, i: int):
         torch = self._torch

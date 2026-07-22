@@ -125,17 +125,20 @@ def build_model(cfg: dict, weights: str, logger=None) -> nn.Module:
     mcfg = cfg["model"]
     backbone = mcfg["backbone"]
     num_classes = int(mcfg["num_classes"])
+    drop_rate = float(mcfg.get("drop_rate", 0.0))  # dropout antes del head (no añade tensores)
     assert backbone == "resnet50", "Backbone ÚNICO congelado: resnet50."
 
     if weights == "random":
-        model = timm.create_model(backbone, pretrained=False, num_classes=num_classes)
+        model = timm.create_model(backbone, pretrained=False, num_classes=num_classes,
+                                  drop_rate=drop_rate)
         if logger:
             logger.info("[weights:random] backbone inicializado aleatoriamente (sin carga).")
         return model
 
     if weights == "imagenet":
         # Modelo destino sin preentrenar; copiamos el state_dict ImageNet de timm con aserción.
-        model = timm.create_model(backbone, pretrained=False, num_classes=num_classes)
+        model = timm.create_model(backbone, pretrained=False, num_classes=num_classes,
+                                  drop_rate=drop_rate)
         src = timm.create_model(backbone, pretrained=True, num_classes=0, global_pool="")
         src_sd = src.state_dict()
         # Esperamos casar todo el extractor (todo menos el head fc del destino).
@@ -146,7 +149,8 @@ def build_model(cfg: dict, weights: str, logger=None) -> nn.Module:
         return model
 
     if weights == "radimagenet":
-        model = timm.create_model(backbone, pretrained=False, num_classes=num_classes)
+        model = timm.create_model(backbone, pretrained=False, num_classes=num_classes,
+                                  drop_rate=drop_rate)
         path = cfg["paths"]["radimagenet_resnet50"]
         raw = _torch_load_state_dict(path, logger)
         if isinstance(raw, dict) and "state_dict" in raw:

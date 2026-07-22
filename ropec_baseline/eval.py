@@ -52,6 +52,7 @@ def paired_bootstrap_delta_auroc(
     n_boot: int = 2000,
     ci: float = 0.95,
     seed: int = 0,
+    return_deltas: bool = False,
 ) -> dict:
     """ΔAUROC = AUROC(A) - AUROC(B), IC por bootstrap remuestreando PACIENTES.
 
@@ -87,16 +88,34 @@ def paired_bootstrap_delta_auroc(
         deltas.append(d)
 
     deltas = np.asarray(deltas)
-    alpha = (1 - ci) / 2
-    lo = float(np.quantile(deltas, alpha)) if len(deltas) else float("nan")
-    hi = float(np.quantile(deltas, 1 - alpha)) if len(deltas) else float("nan")
-    return {
+    out = {
         "comparison": "A - B",
         "delta_auroc_observed": obs,
         "delta_auroc_boot_mean": float(deltas.mean()) if len(deltas) else float("nan"),
         "ci": ci,
-        "ci_low": lo,
-        "ci_high": hi,
+        "ci_low": pooled_ci(deltas, ci)[0],
+        "ci_high": pooled_ci(deltas, ci)[1],
+        "p_bootstrap": bootstrap_pvalue(deltas),
         "n_boot_effective": int(len(deltas)),
         "n_patients": int(n_pat),
     }
+    if return_deltas:
+        out["_deltas"] = deltas
+    return out
+
+
+def pooled_ci(deltas: np.ndarray, ci: float = 0.95) -> tuple[float, float]:
+    """IC percentil sobre una distribución de deltas (una o varias semillas agrupadas)."""
+    if len(deltas) == 0:
+        return float("nan"), float("nan")
+    alpha = (1 - ci) / 2
+    return float(np.quantile(deltas, alpha)), float(np.quantile(deltas, 1 - alpha))
+
+
+def bootstrap_pvalue(deltas: np.ndarray) -> float:
+    """p-valor bootstrap de dos colas para H0: ΔAUROC = 0 (cluster-robusto)."""
+    if len(deltas) == 0:
+        return float("nan")
+    frac_neg = float((deltas < 0).mean())
+    frac_pos = float((deltas > 0).mean())
+    return float(min(1.0, 2.0 * min(frac_neg, frac_pos)))

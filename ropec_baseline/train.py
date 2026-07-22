@@ -15,8 +15,8 @@ from torch.utils.data import DataLoader
 from data import ViewDataset, subset_index
 
 
-def _make_loader(index_df, full_index, cfg, mode, shuffle):
-    ds = ViewDataset(index_df, cfg, mode=mode)
+def _make_loader(index_df, full_index, cfg, mode, shuffle, train=False):
+    ds = ViewDataset(index_df, cfg, mode=mode, train=train)
     return DataLoader(
         ds,
         batch_size=int(cfg["train"]["batch_size"]),
@@ -24,6 +24,24 @@ def _make_loader(index_df, full_index, cfg, mode, shuffle):
         num_workers=int(cfg["train"]["num_workers"]),
         drop_last=False,
     )
+
+
+def _build_optimizer(model, cfg):
+    """Adam con LR discriminativo: backbone (todo menos fc) a lr*mult, head a lr."""
+    tcfg = cfg["train"]
+    lr = float(tcfg["lr"])
+    wd = float(tcfg["weight_decay"])
+    mult = float(tcfg.get("backbone_lr_mult", 1.0))
+    head, backbone = [], []
+    for name, p in model.named_parameters():
+        if not p.requires_grad:
+            continue
+        (head if name.startswith("fc.") else backbone).append(p)
+    groups = [
+        {"params": backbone, "lr": lr * mult},
+        {"params": head, "lr": lr},
+    ]
+    return torch.optim.Adam(groups, lr=lr, weight_decay=wd)
 
 
 def _pos_weight(index_df: pd.DataFrame, device) -> torch.Tensor | None:
@@ -79,21 +97,18 @@ def train_one_fold(cfg, full_index, fold, weights, model, device, logger):
     va_df = subset_index(full_index, fold["val_patients"])
     te_df = subset_index(full_index, fold["test_patients"])
 
-    train_loader = _make_loader(tr_df, full_index, cfg, mode, shuffle=True)
-    val_loader = _make_loader(va_df, full_index, cfg, mode, shuffle=False)
-    test_loader = _make_loader(te_df, full_index, cfg, mode, shuffle=False)
+    train_loader = _make_loader(tr_df, full_index, cfg, mode, shuffle=True, train=True)
+    val_loader = _make_loader(va_df, full_index, cfg, mode, shuffle=False, train=False)
+    test_loader = _make_loader(te_df, full_index, cfg, mode, shuffle=False, train=False)
 
     model = model.to(device)
     pos_weight = _pos_weight(tr_df, device) if cfg["train"]["class_weighted_loss"] else None
     criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-    opt = torch.optim.Adam(
-        model.parameters(),
-        lr=float(cfg["train"]["lr"]),
-        weight_decay=float(cfg["train"]["weight_decay"]),
-    )
+    opt = _build_optimizer(model, cfg)
 
     best_auc, best_state, patience = -1.0, None, 0
     max_patience = int(cfg["train"]["early_stopping_patience"])
+    min_epochs = int(cfg["train"].get("min_epochs", 0))
 
     for epoch in range(int(cfg["train"]["epochs"])):
         model.train()
@@ -123,7 +138,7 @@ def train_one_fold(cfg, full_index, fold, weights, model, device, logger):
             best_auc, best_state, patience = score, copy.deepcopy(model.state_dict()), 0
         else:
             patience += 1
-            if patience >= max_patience:
+            if patience >= max_patience and epoch + 1 >= min_epochs:
                 logger.info(f"  [{weights}] fold {fold['fold']} early stop @ epoch {epoch}")
                 break
 
