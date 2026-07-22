@@ -11,6 +11,11 @@ device: auto                   # auto | cuda | cpu
 multiseed:
   seeds: [1337, 2024, 7, 42, 2718]   # 5 corridas CV independientes
 
+# --- Curva de eficiencia de etiquetas (Fase 3; run_curve.py) -----------------------
+curve:
+  fractions: [0.10, 0.25, 0.50, 1.00]   # subconjuntos ANIDADOS de train (por paciente)
+  seeds: [1337, 2024, 7]                 # >=3 semillas por fracción
+
 # --- Rutas (ABSOLUTAS a disco secundario read-only para datos reales) -------------
 paths:
   # Datos reales PlaTiF (se conectan en Fase 1; ignorados en mode: toy)

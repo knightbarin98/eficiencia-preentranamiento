@@ -90,10 +90,16 @@ def _choose_threshold(logits, y, metric: str) -> float:
     return best_t
 
 
-def train_one_fold(cfg, full_index, fold, weights, model, device, logger):
-    """Entrena un comparador en un fold. Devuelve (df_pred_test_por_vista, threshold)."""
+def train_one_fold(cfg, full_index, fold, weights, model, device, logger,
+                   train_patients=None):
+    """Entrena un comparador en un fold. Devuelve (df_pred_test_por_vista, threshold).
+
+    `train_patients` opcional: subconjunto de pacientes de train (curva de eficiencia).
+    Si es None usa fold["train_patients"] completo. val/test SIEMPRE intactos.
+    """
     mode = cfg.get("mode", "toy")
-    tr_df = subset_index(full_index, fold["train_patients"])
+    tp = train_patients if train_patients is not None else fold["train_patients"]
+    tr_df = subset_index(full_index, tp)
     va_df = subset_index(full_index, fold["val_patients"])
     te_df = subset_index(full_index, fold["test_patients"])
 

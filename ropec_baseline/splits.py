@@ -72,6 +72,34 @@ def _fold_prevalence(df, train_p, val_p, test_p) -> dict:
     return {"train": _prev(df, train_p), "val": _prev(df, val_p), "test": _prev(df, test_p)}
 
 
+def patient_positivity(index_df: pd.DataFrame) -> dict:
+    """patient_id -> bool (positivo si tiene alguna vista fx)."""
+    s = index_df.groupby("patient_id")["y_vista"].max()
+    return {int(k): bool(v) for k, v in s.items()}
+
+
+def nested_stratified_subsets(patients, is_pos: dict, fractions, seed: int) -> dict:
+    """Subconjuntos ANIDADOS y ESTRATIFICADOS de pacientes de train.
+
+    Ordena positivos y negativos por separado (semilla) y para cada fracción toma
+    prefijos -> subconjuntos anidados (10% ⊂ 25% ⊂ ...) que preservan prevalencia.
+    Devuelve {fraccion: [patient_id, ...]}. >=1 por clase aunque la fracción sea baja.
+    """
+    import math
+
+    rng = np.random.default_rng(seed)
+    pos = sorted(int(p) for p in patients if is_pos.get(int(p), False))
+    neg = sorted(int(p) for p in patients if not is_pos.get(int(p), False))
+    rng.shuffle(pos)
+    rng.shuffle(neg)
+    out = {}
+    for f in sorted(float(x) for x in fractions):
+        n_pos = max(1, math.ceil(f * len(pos)))
+        n_neg = max(1, math.ceil(f * len(neg)))
+        out[f] = sorted(pos[:n_pos] + neg[:n_neg])
+    return out
+
+
 def check_no_leakage(folds: list[dict], index_df: pd.DataFrame) -> None:
     """Aserciones de cero fuga. Levanta AssertionError si algo falla."""
     all_patients = set(int(p) for p in index_df["patient_id"].unique())
