@@ -41,6 +41,12 @@ MIXED_SIDE_IDS = {92, 112, 133, 147}
 XLSX_BILATERAL_IDS = {63, 280, 290}
 VIEW_RE = re.compile(r"^im\d+$")
 
+# Caché en RAM de imágenes reales ya preprocesadas (3xSxS). Clave: (mat_path, view).
+# Se llena en la 1ª época y se reusa en todos los folds/comparadores/épocas
+# (preprocesamiento determinista, sin augmentation -> cacheable). Requiere
+# num_workers=0 para compartir el caché en un solo proceso.
+_REAL_IMAGE_CACHE: dict = {}
+
 
 def knee_id_of(patient_id: int, label: int) -> str:
     """knee_id = (patient_id, 'fx' if label<=6 else 'normal')."""
@@ -352,6 +358,11 @@ class ViewDataset:
         torch = self._torch
         import torch.nn.functional as F
 
+        cache_key = (mat_path, view, self.img_size)
+        cached = _REAL_IMAGE_CACHE.get(cache_key)
+        if cached is not None:
+            return cached.clone()
+
         struct = self._get_struct(mat_path)
         img = read_view_image(struct, view)  # HxW float32
         # Normalización robusta por imagen a [0,1] (percentiles 1-99)
@@ -365,7 +376,9 @@ class ViewDataset:
         t = t.repeat(3, 1, 1)  # 3,S,S
         mean = torch.tensor(self.IMAGENET_MEAN).view(3, 1, 1)
         std = torch.tensor(self.IMAGENET_STD).view(3, 1, 1)
-        return (t - mean) / std
+        out = (t - mean) / std
+        _REAL_IMAGE_CACHE[cache_key] = out
+        return out.clone()
 
     def __getitem__(self, i: int):
         torch = self._torch

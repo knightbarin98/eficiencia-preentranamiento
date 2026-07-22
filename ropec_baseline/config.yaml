@@ -2,8 +2,8 @@
 # Ablación de procedencia de preentrenamiento: ResNet-50 ImageNet vs RadImageNet vs random
 # sobre PlaTiF (fractura de platillo tibial, presencia/ausencia a nivel rodilla).
 
-run_name: smoke_toy            # nombre de la corrida -> outputs/<run_name>/
-mode: toy                      # toy | real   (Fase 0 usa toy; Fase 1 conecta PlaTiF)
+run_name: contingency_100      # nombre de la corrida -> outputs/<run_name>/
+mode: real                     # toy | real   (real = PlaTiF post-QC)
 seed: 1337
 device: auto                   # auto | cuda | cpu
 
@@ -27,18 +27,19 @@ model:
     radimagenet: 318           # exige exactamente 318 o aborta
 
 # Comparadores de ESTA corrida. P1 final = [imagenet, radimagenet, random].
-# En toy solo se ejercitan imagenet + random (radimagenet requiere el .pt en disco).
-comparators: [imagenet, random]
+# Contingencia @100% = los 3 comparadores finales de P1.
+# Orden elegido para que el par primario ΔAUROC salga como RadImageNet - ImageNet.
+comparators: [radimagenet, imagenet, random]
 
 # --- Entrenamiento (idéntico para TODOS los comparadores) --------------------------
 train:
-  epochs: 2                    # toy: 2; real sube en config real
-  batch_size: 16
+  epochs: 30                   # presupuesto de convergencia (GPU 16GB, dataset chico)
+  batch_size: 32
   lr: 0.0003
   weight_decay: 0.0001
   optimizer: adam
-  num_workers: 2
-  early_stopping_patience: 3   # sobre AUROC de val interno
+  num_workers: 0               # 0 = comparte el caché en RAM de imágenes reales
+  early_stopping_patience: 7   # sobre AUROC de val interno
   threshold_metric: youden     # youden | f1  (elección de umbral en val interno)
   class_weighted_loss: true    # pos_weight por prevalencia (train)
 

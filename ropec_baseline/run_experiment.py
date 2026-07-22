@@ -56,14 +56,20 @@ def main():
     import torch  # noqa: F401  (garantiza fallo temprano y claro si falta torch)
 
     # 1) Índice -----------------------------------------------------------------
-    index = build_index(cfg, seed)
+    if cfg.get("mode", "toy") == "real":
+        from qc import build_qc_cohort
+
+        index, excl_df = build_qc_cohort(cfg, verbose=True)
+        excl_df.to_csv(os.path.join(out_dir, "qc_exclusions.csv"), index=False)
+    else:
+        index = build_index(cfg, seed)
     index.to_csv(os.path.join(out_dir, "index.csv"), index=False)
     mixed = find_mixed_patients(index)
     logger.info(
         f"index: {len(index)} vistas | {index['knee_id'].nunique()} rodillas | "
         f"{index['patient_id'].nunique()} pacientes | mixtos={sorted(mixed)}"
     )
-    assert len(mixed) >= 1, "El toy debe contener >=1 paciente mixto (invariante de smoke)."
+    assert len(mixed) >= 1, "Debe haber >=1 paciente mixto (ejercita la derivación knee_id)."
 
     # 2) Folds por paciente -----------------------------------------------------
     n_folds = int(cfg["splits"]["n_folds"])
