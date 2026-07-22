@@ -1,0 +1,106 @@
+# ROPEC 2026 — baseline config (todo parametrizado desde aquí)
+# Ablación de procedencia de preentrenamiento: ResNet-50 ImageNet vs RadImageNet vs random
+# sobre PlaTiF (fractura de platillo tibial, presencia/ausencia a nivel rodilla).
+
+run_name: multiseed_100        # nombre de la corrida -> outputs/<run_name>/
+mode: real                     # toy | real   (real = PlaTiF post-QC)
+seed: 1337                     # semilla base (single-run); el barrido usa multiseed.seeds
+device: auto                   # auto | cuda | cpu
+
+# --- Multi-semilla (robustez de optimización; run_multiseed.py) --------------------
+multiseed:
+  seeds: [1337, 2024, 7, 42, 2718]   # 5 corridas CV independientes
+
+# --- Curva de eficiencia de etiquetas (Fase 3; run_curve.py) -----------------------
+curve:
+  fractions: [0.10, 0.25, 0.50, 1.00]   # subconjuntos ANIDADOS de train (por paciente)
+  seeds: [1337, 2024, 7]                 # >=3 semillas por fracción
+
+# --- Rutas (ABSOLUTAS a disco secundario read-only para datos reales) -------------
+paths:
+  # Datos reales PlaTiF (se conectan en Fase 1; ignorados en mode: toy)
+  platif_root: /mnt/llm-storage/bone-dataset/PlaTiF
+  platif_xlsx: /mnt/llm-storage/bone-dataset/PlaTiF/Tibial_Plateau_Fracture_Metadata.xlsx
+  # Pesos
+  radimagenet_resnet50: /mnt/llm-storage/weights/RadImageNet_pytorch/ResNet50.pt
+  # Salidas SIEMPRE dentro del repo (nunca en el disco de datos)
+  output_root: ./outputs
+
+# --- Modelo ------------------------------------------------------------------------
+model:
+  backbone: resnet50           # backbone ÚNICO para todos los comparadores
+  num_classes: 1               # logit único -> BCEWithLogitsLoss
+  img_size: 224                # 3xHxW; toy genera ruido de este tamaño
+  drop_rate: 0.0               # sin dropout (config checkpoint; el tuning no mejoró)
+  # Conteos de tensores esperados por fuente de pesos (aserción de carga)
+  expected_tensors:
+    radimagenet: 318           # exige exactamente 318 o aborta
+
+# Comparadores de ESTA corrida. P1 final = [imagenet, radimagenet, random].
+# Contingencia @100% = los 3 comparadores finales de P1.
+# Orden elegido para que el par primario ΔAUROC salga como RadImageNet - ImageNet.
+comparators: [radimagenet, imagenet, random]
+
+# --- Entrenamiento (idéntico para TODOS los comparadores) --------------------------
+train:
+  epochs: 30                   # config checkpoint (el tuning con más épocas no mejoró)
+  batch_size: 32
+  lr: 0.0003                   # LR uniforme (head y backbone)
+  backbone_lr_mult: 1.0        # 1.0 = uniforme -> contraste de procedencia limpio
+  weight_decay: 0.0001
+  optimizer: adam
+  num_workers: 0               # 0 = comparte el caché en RAM de imágenes reales
+  early_stopping_patience: 7   # sobre AUROC de val interno
+  min_epochs: 0                # sin piso (config checkpoint)
+  threshold_metric: youden     # youden | f1  (elección de umbral en val interno)
+  class_weighted_loss: true    # pos_weight por prevalencia (train)
+
+# --- Augmentation (train-only; IDÉNTICO para todos los comparadores) ---------------
+# Desactivado: en 419 imágenes el aug subentrenó los preentrenados y degradó los CIs
+# (probado seed 1337: AUROC y ΔAUROC peores que sin aug). El código queda listo por si
+# se reactiva en Fase 3. Label-preserving cuando se use (el lado sale del label).
+augment:
+  enabled: false
+  hflip_p: 0.5
+  rotation_deg: 10             # RandomAffine grados
+  scale_range: [0.85, 1.0]     # zoom aleatorio (RandomAffine scale)
+  brightness: 0.15
+  contrast: 0.15
+
+# --- Splits ------------------------------------------------------------------------
+splits:
+  n_folds: 5                   # StratifiedGroupKFold(5) sobre patient_id
+  internal_val_folds: 5        # split interno (1/5 -> ~20% val) dentro de cada train
+
+# --- Evaluación / inferencia -------------------------------------------------------
+eval:
+  # Agregación vista->rodilla CONGELADA: media de logits dentro de cada knee_id.
+  view_aggregation: mean_logit
+  bootstrap:
+    n_boot: 2000               # bootstrap pareado remuestreando PACIENTES completos
+    ci: 0.95
+
+# --- QC (criterios CONGELADOS antes de mirar métricas) ----------------------------
+qc:
+  min_resolution: 256          # min(H,W) admitido en OriginalImage
+  dup_hamming_threshold: 5     # pHash 64-bit; distancia <= => near-duplicate
+  # Alcance de deduplicación:
+  #   cross_patient (recomendado): solo duplicados ENTRE pacientes = riesgo de fuga.
+  #     Los folds son por paciente, así que duplicados intra-paciente (contralateral
+  #     o multi-vista de la misma rodilla) NO causan fuga y son datos legítimos.
+  #   all: también intra-paciente (footgun: el pHash colapsa rodillas contralaterales
+  #     en radiografías y borra negativos legítimos). No usar sin revisar.
+  dup_scope: cross_patient
+  check_mask_concordance: true # BW presente, misma forma, ni vacía ni llena
+  # Exclusiones clínicas/subjetivas: NO auto-detectables. Se congelan por revisión
+  # manual (revisor clínico). CSV opcional con columnas patient_id,view,criterio.
+  # Vacío/nulo => sin exclusiones manuales (no se inventan).
+  manual_exclusions_csv: null
+
+# --- Dataset juguete (solo mode: toy) ---------------------------------------------
+toy:
+  n_patients: 40
+  # Distribución de nº de vistas por paciente (imita PlaTiF: 1-8, mayoría 1-3)
+  views_choices: [1, 1, 2, 2, 2, 3, 3, 4, 5, 6, 8]
+  positive_rate: 0.67          # prevalencia objetivo a nivel paciente
+  n_mixed_patients: 2          # >=1 paciente mixto (rodilla fx + rodilla normal)

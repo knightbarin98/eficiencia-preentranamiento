@@ -1,0 +1,14 @@
+# ROPEC 2026 baseline — crea un env FRESCO (ningún env conda actual trae el stack completo).
+# Ver README para el comando de creación.
+torch
+torchvision
+timm
+scikit-learn
+pandas
+numpy
+scipy          # scipy.io.loadmat para los .mat v5 de PlaTiF
+openpyxl       # lectura del xlsx de metadata
+h5py
+pyyaml
+matplotlib     # figuras de Fase 5 (make_figures.py)
+pytest         # tests de cero fuga (tests/); el test también corre standalone
