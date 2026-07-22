@@ -38,6 +38,24 @@ def remap_radimagenet_keys(state_dict: "OrderedDict") -> "OrderedDict":
     return out
 
 
+def _torch_load_state_dict(path: str, logger=None):
+    """torch.load robusto ante el cambio de weights_only en torch>=2.6.
+
+    El .pt de RadImageNet es un OrderedDict de tensores (fuente confiable del
+    usuario). Intenta weights_only=True; si el pickle lo requiere, cae a False.
+    """
+    try:
+        return torch.load(path, map_location="cpu", weights_only=True)
+    except TypeError:
+        # torch antiguo sin el kwarg weights_only
+        return torch.load(path, map_location="cpu")
+    except Exception as e:  # pickle no cargable en modo seguro -> fallback confiable
+        if logger:
+            logger.info(f"[weights] weights_only=True falló ({type(e).__name__}); "
+                        "reintentando weights_only=False (archivo confiable).")
+        return torch.load(path, map_location="cpu", weights_only=False)
+
+
 # --------------------------------------------------------------------------- #
 # Carga con aserción de conteo
 # --------------------------------------------------------------------------- #
@@ -130,7 +148,7 @@ def build_model(cfg: dict, weights: str, logger=None) -> nn.Module:
     if weights == "radimagenet":
         model = timm.create_model(backbone, pretrained=False, num_classes=num_classes)
         path = cfg["paths"]["radimagenet_resnet50"]
-        raw = torch.load(path, map_location="cpu")
+        raw = _torch_load_state_dict(path, logger)
         if isinstance(raw, dict) and "state_dict" in raw:
             raw = raw["state_dict"]
         remapped = remap_radimagenet_keys(raw)
@@ -141,3 +159,32 @@ def build_model(cfg: dict, weights: str, logger=None) -> nn.Module:
         return model
 
     raise ValueError(f"weights desconocido: {weights}")
+
+
+# --------------------------------------------------------------------------- #
+# CLI: probar la carga de pesos por comparador y reportar conteo (Prompt 2.1)
+# --------------------------------------------------------------------------- #
+def _main():
+    import argparse
+
+    from utils import get_logger, load_config
+
+    ap = argparse.ArgumentParser(description="Prueba de carga de pesos por comparador.")
+    ap.add_argument("--config", default="config.yaml")
+    ap.add_argument("--weights", default="radimagenet",
+                    help="random | imagenet | radimagenet | all")
+    args = ap.parse_args()
+
+    cfg = load_config(args.config)
+    logger = get_logger("ropec-weights")
+    targets = ["random", "imagenet", "radimagenet"] if args.weights == "all" else [args.weights]
+
+    for w in targets:
+        logger.info(f"----- construyendo modelo: weights={w} -----")
+        model = build_model(cfg, w, logger=logger)
+        n_params = sum(p.numel() for p in model.parameters())
+        logger.info(f"[{w}] modelo OK  ({n_params/1e6:.1f}M parámetros)")
+
+
+if __name__ == "__main__":
+    _main()
