@@ -10,3 +10,4 @@ scipy          # scipy.io.loadmat para los .mat v5 de PlaTiF
 openpyxl       # lectura del xlsx de metadata
 h5py
 pyyaml
+pytest         # tests de cero fuga (tests/); el test también corre standalone

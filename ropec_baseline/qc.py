@@ -183,6 +183,28 @@ def _flow_diagram(index_df: pd.DataFrame, excl_df: pd.DataFrame) -> dict:
     }
 
 
+def apply_exclusions(index_df: pd.DataFrame, excl_df: pd.DataFrame) -> pd.DataFrame:
+    """Devuelve el índice sin las vistas excluidas por QC."""
+    if len(excl_df) == 0:
+        return index_df.reset_index(drop=True)
+    excluded = set(zip(excl_df["patient_id"], excl_df["view"]))
+    keep = index_df[~index_df.apply(
+        lambda r: (r["patient_id"], r["view"]) in excluded, axis=1)]
+    return keep.reset_index(drop=True)
+
+
+def build_qc_cohort(cfg: dict, verbose: bool = False):
+    """Índice real -> QC -> índice post-QC (cohorte de análisis). Devuelve (index, excl)."""
+    index = build_real_index(cfg, seed=int(cfg["seed"]), run_assertions=True)
+    excl_df, flow = run_qc(cfg, index)
+    cohort = apply_exclusions(index, excl_df)
+    if verbose:
+        print(f"[QC] cohorte: {cohort['patient_id'].nunique()} pac / "
+              f"{cohort['knee_id'].nunique()} rodillas / {len(cohort)} vistas "
+              f"(excluidas {len(excl_df)} vistas)")
+    return cohort, excl_df
+
+
 def main():
     ap = argparse.ArgumentParser(description="QC de PlaTiF (criterios congelados).")
     ap.add_argument("--config", default="config.yaml")

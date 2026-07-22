@@ -116,3 +116,43 @@ def save_manifest(folds: list[dict], index_df: pd.DataFrame, path: str, seed: in
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(manifest, f, indent=2)
+
+
+# --------------------------------------------------------------------------- #
+# CLI: genera folds_manifest.json sobre el cohorte real post-QC (Prompt 1.3)
+# --------------------------------------------------------------------------- #
+def _main():
+    import argparse
+
+    from qc import build_qc_cohort
+    from utils import load_config, set_seed
+
+    ap = argparse.ArgumentParser(description="Genera splits por paciente (post-QC).")
+    ap.add_argument("--config", default="config.yaml")
+    ap.add_argument("--out", default=None)
+    args = ap.parse_args()
+
+    cfg = load_config(args.config)
+    seed = int(cfg["seed"])
+    set_seed(seed)
+
+    cohort, _ = build_qc_cohort(cfg, verbose=True)
+    n_folds = int(cfg["splits"]["n_folds"])
+    folds = make_folds(cohort, n_folds, int(cfg["splits"]["internal_val_folds"]), seed)
+    check_no_leakage(folds, cohort)  # aborta si hay fuga
+
+    out = args.out or os.path.join(cfg["paths"]["output_root"], "folds_manifest.json")
+    save_manifest(folds, cohort, out, seed)
+
+    print("\n=== Prevalencia por fold (test) ===")
+    print(f"{'fold':>4} {'pac':>4} {'rodillas':>9} {'fx':>4} {'neg':>4} {'prev':>6}")
+    for f in folds:
+        t = f["prevalence"]["test"]
+        n_pos = round(t["knee_pos_rate"] * t["n_knees"])
+        print(f"{f['fold']:>4} {t['n_patients']:>4} {t['n_knees']:>9} "
+              f"{n_pos:>4} {t['n_knees']-n_pos:>4} {t['knee_pos_rate']:>6.3f}")
+    print("\n✅ cero fuga verificada. folds_manifest.json ->", out)
+
+
+if __name__ == "__main__":
+    _main()
