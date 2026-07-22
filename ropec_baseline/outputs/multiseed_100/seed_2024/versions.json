@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-07-21T21:29:39",
+  "python": "3.11.15",
+  "platform": "Linux-6.8.0-134-generic-x86_64-with-glibc2.35",
+  "git_hash": "777e3de55a9df1eaa5da371dbfe8ac29b991cb7e",
+  "numpy": "2.4.6",
+  "pandas": "3.0.3",
+  "sklearn": "1.9.0",
+  "scipy": "1.17.1",
+  "yaml": "6.0.3",
+  "timm": "1.0.28",
+  "h5py": "3.16.0",
+  "openpyxl": "3.1.5",
+  "torch": "2.13.0+cu130",
+  "cuda_available": true,
+  "cuda_version": "13.0",
+  "cudnn": 92000,
+  "gpu": "NVIDIA GeForce RTX 5060 Ti"
+}

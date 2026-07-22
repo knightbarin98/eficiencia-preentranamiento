@@ -1,0 +1,4 @@
+comparator,auroc_mean,auroc_sd,auprc_mean,auprc_sd
+RadImageNet,0.6792,0.0383,0.8003,0.0243
+ImageNet,0.6642,0.0277,0.7837,0.0214
+random,0.5256,0.0196,0.6978,0.0216

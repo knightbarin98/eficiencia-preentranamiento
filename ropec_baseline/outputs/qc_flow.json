@@ -1,0 +1,22 @@
+{
+  "full": {
+    "patients": 186,
+    "knees": 190,
+    "views": 421,
+    "knee_pos": 128,
+    "knee_neg": 62
+  },
+  "after_qc": {
+    "patients": 186,
+    "knees": 190,
+    "views": 419,
+    "knee_pos": 128,
+    "knee_neg": 62
+  },
+  "views_excluded": 2,
+  "views_excluded_by_criterio": {
+    "concordancia_mascara": 2
+  },
+  "knees_dropped": 0,
+  "patients_dropped": 0
+}

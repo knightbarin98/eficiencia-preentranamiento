@@ -1,0 +1,41 @@
+{
+  "radimagenet_vs_imagenet": {
+    "comparison": "A - B",
+    "delta_auroc_observed": 0.005544354838709742,
+    "delta_auroc_boot_mean": 0.004782485806525914,
+    "ci": 0.95,
+    "ci_low": -0.08952784629791401,
+    "ci_high": 0.10078131176796123,
+    "p_bootstrap": 0.929,
+    "n_boot_effective": 2000,
+    "n_patients": 186,
+    "A": "radimagenet",
+    "B": "imagenet"
+  },
+  "radimagenet_vs_random": {
+    "comparison": "A - B",
+    "delta_auroc_observed": 0.15511592741935487,
+    "delta_auroc_boot_mean": 0.15496798808766862,
+    "ci": 0.95,
+    "ci_low": 0.04669105700166949,
+    "ci_high": 0.2573346067282634,
+    "p_bootstrap": 0.006,
+    "n_boot_effective": 2000,
+    "n_patients": 186,
+    "A": "radimagenet",
+    "B": "random"
+  },
+  "imagenet_vs_random": {
+    "comparison": "A - B",
+    "delta_auroc_observed": 0.14957157258064513,
+    "delta_auroc_boot_mean": 0.1501855022811427,
+    "ci": 0.95,
+    "ci_low": 0.05733728954987174,
+    "ci_high": 0.24346361257384577,
+    "p_bootstrap": 0.002,
+    "n_boot_effective": 2000,
+    "n_patients": 186,
+    "A": "imagenet",
+    "B": "random"
+  }
+}

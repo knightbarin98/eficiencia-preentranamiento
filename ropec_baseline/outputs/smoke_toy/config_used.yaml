@@ -1,0 +1,52 @@
+run_name: smoke_toy
+mode: toy
+seed: 1337
+device: auto
+paths:
+  platif_root: /mnt/llm-storage/bone-dataset/PlaTiF
+  platif_xlsx: /mnt/llm-storage/bone-dataset/PlaTiF/Tibial_Plateau_Fracture_Metadata.xlsx
+  radimagenet_resnet50: /mnt/llm-storage/weights/RadImageNet_pytorch/ResNet50.pt
+  output_root: ./outputs
+model:
+  backbone: resnet50
+  num_classes: 1
+  img_size: 224
+  expected_tensors:
+    radimagenet: 318
+comparators:
+- imagenet
+- random
+train:
+  epochs: 2
+  batch_size: 16
+  lr: 0.0003
+  weight_decay: 0.0001
+  optimizer: adam
+  num_workers: 2
+  early_stopping_patience: 3
+  threshold_metric: youden
+  class_weighted_loss: true
+splits:
+  n_folds: 5
+  internal_val_folds: 5
+eval:
+  view_aggregation: mean_logit
+  bootstrap:
+    n_boot: 2000
+    ci: 0.95
+toy:
+  n_patients: 40
+  views_choices:
+  - 1
+  - 1
+  - 2
+  - 2
+  - 2
+  - 3
+  - 3
+  - 4
+  - 5
+  - 6
+  - 8
+  positive_rate: 0.67
+  n_mixed_patients: 2

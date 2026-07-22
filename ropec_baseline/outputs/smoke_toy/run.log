@@ -1,0 +1,16 @@
+15:21:27 | INFO    | device=cuda  run=smoke_toy  mode=toy
+15:21:27 | INFO    | index: 140 vistas | 42 rodillas | 40 pacientes | mixtos=[1, 2]
+15:21:27 | INFO    | SMOKE: usando solo el fold 0
+15:21:27 | INFO    | ===== Comparador: imagenet =====
+15:21:30 | INFO    | [weights:imagenet] cargados=318  omitidos_por_shape=0  faltantes_en_fuente=2  no_usados_de_fuente=0
+15:21:32 | INFO    |   [imagenet] fold 0 epoch 0  train_loss=0.5789  val_auc=0.8148
+15:21:32 | INFO    |   [imagenet] fold 0 epoch 1  train_loss=0.5410  val_auc=0.7130
+15:21:32 | INFO    | [imagenet] OOF  AUROC=0.8000  AUPRC=0.9111  prev=0.556  n_knees=9
+15:21:32 | INFO    | ===== Comparador: random =====
+15:21:33 | INFO    | [weights:random] backbone inicializado aleatoriamente (sin carga).
+15:21:33 | INFO    |   [random] fold 0 epoch 0  train_loss=0.1582  val_auc=1.0000
+15:21:34 | INFO    |   [random] fold 0 epoch 1  train_loss=0.0029  val_auc=1.0000
+15:21:34 | INFO    | [random] OOF  AUROC=1.0000  AUPRC=1.0000  prev=0.556  n_knees=9
+15:21:38 | INFO    | ΔAUROC imagenet-random: obs=-0.2000  IC95%=[-0.6667, +0.0000]  (boot=1991, pacientes=8)
+15:21:38 | INFO    | Artefactos en: ./outputs/smoke_toy
+15:21:38 | INFO    | DONE.

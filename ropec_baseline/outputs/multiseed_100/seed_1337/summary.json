@@ -1,0 +1,72 @@
+{
+  "run_name": "multiseed_100",
+  "mode": "real",
+  "seed": 1337,
+  "n_folds": 5,
+  "comparators": [
+    "radimagenet",
+    "imagenet",
+    "random"
+  ],
+  "metrics": {
+    "radimagenet": {
+      "n_knees": 190,
+      "prevalence": 0.6736842105263158,
+      "auroc": 0.6835937500000001,
+      "auprc": 0.7951198856001107
+    },
+    "imagenet": {
+      "n_knees": 190,
+      "prevalence": 0.6736842105263158,
+      "auroc": 0.6810735887096775,
+      "auprc": 0.8024862368670831
+    },
+    "random": {
+      "n_knees": 190,
+      "prevalence": 0.6736842105263158,
+      "auroc": 0.5282258064516129,
+      "auprc": 0.6901871018749586
+    }
+  },
+  "delta_auroc": {
+    "radimagenet_vs_imagenet": {
+      "comparison": "A - B",
+      "delta_auroc_observed": 0.00252016129032262,
+      "delta_auroc_boot_mean": 0.0032364634966387936,
+      "ci": 0.95,
+      "ci_low": -0.09092205430559322,
+      "ci_high": 0.09709857645883054,
+      "p_bootstrap": 0.951,
+      "n_boot_effective": 2000,
+      "n_patients": 186,
+      "A": "radimagenet",
+      "B": "imagenet"
+    },
+    "radimagenet_vs_random": {
+      "comparison": "A - B",
+      "delta_auroc_observed": 0.15536794354838723,
+      "delta_auroc_boot_mean": 0.15629253640780974,
+      "ci": 0.95,
+      "ci_low": 0.07425245264072301,
+      "ci_high": 0.24011045511416954,
+      "p_bootstrap": 0.0,
+      "n_boot_effective": 2000,
+      "n_patients": 186,
+      "A": "radimagenet",
+      "B": "random"
+    },
+    "imagenet_vs_random": {
+      "comparison": "A - B",
+      "delta_auroc_observed": 0.1528477822580646,
+      "delta_auroc_boot_mean": 0.15305607291117096,
+      "ci": 0.95,
+      "ci_low": 0.04116702410130728,
+      "ci_high": 0.2580924733281289,
+      "p_bootstrap": 0.008,
+      "n_boot_effective": 2000,
+      "n_patients": 186,
+      "A": "imagenet",
+      "B": "random"
+    }
+  }
+}

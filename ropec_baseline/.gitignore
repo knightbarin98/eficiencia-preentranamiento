@@ -1,5 +1,4 @@
 # Artefactos de corridas (se regeneran; no versionar el disco)
-outputs/
 
 # Python
 __pycache__/

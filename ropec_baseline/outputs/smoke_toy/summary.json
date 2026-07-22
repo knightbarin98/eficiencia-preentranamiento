@@ -1,0 +1,38 @@
+{
+  "run_name": "smoke_toy",
+  "mode": "toy",
+  "seed": 1337,
+  "n_folds": 1,
+  "comparators": [
+    "imagenet",
+    "random"
+  ],
+  "metrics": {
+    "imagenet": {
+      "n_knees": 9,
+      "prevalence": 0.5555555555555556,
+      "auroc": 0.8,
+      "auprc": 0.9111111111111112
+    },
+    "random": {
+      "n_knees": 9,
+      "prevalence": 0.5555555555555556,
+      "auroc": 1.0,
+      "auprc": 1.0
+    }
+  },
+  "delta_auroc": {
+    "imagenet_vs_random": {
+      "comparison": "A - B",
+      "delta_auroc_observed": -0.19999999999999996,
+      "delta_auroc_boot_mean": -0.20623938676424863,
+      "ci": 0.95,
+      "ci_low": -0.6666666666666667,
+      "ci_high": 0.0,
+      "n_boot_effective": 1991,
+      "n_patients": 8,
+      "A": "imagenet",
+      "B": "random"
+    }
+  }
+}

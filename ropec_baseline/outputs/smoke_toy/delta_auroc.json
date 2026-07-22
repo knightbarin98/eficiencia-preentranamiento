@@ -1,0 +1,14 @@
+{
+  "imagenet_vs_random": {
+    "comparison": "A - B",
+    "delta_auroc_observed": -0.19999999999999996,
+    "delta_auroc_boot_mean": -0.20623938676424863,
+    "ci": 0.95,
+    "ci_low": -0.6666666666666667,
+    "ci_high": 0.0,
+    "n_boot_effective": 1991,
+    "n_patients": 8,
+    "A": "imagenet",
+    "B": "random"
+  }
+}

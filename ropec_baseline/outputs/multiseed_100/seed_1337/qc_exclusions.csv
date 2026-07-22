@@ -1,0 +1,3 @@
+patient_id,view,knee_id,criterio,detail
+47,im1,47:fx,concordancia_mascara,"forma BW (2857, 1285) != img (2517, 1356)"
+81,im1,81:fx,concordancia_mascara,"forma BW (2819, 1398) != img (2819, 1290)"
