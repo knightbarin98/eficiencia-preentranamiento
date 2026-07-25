@@ -49,16 +49,16 @@ def figure_efficiency_curve(curve, out_dir):
         stds = [ct[str(f)][c]["auroc_std"] for f in fractions]
         ax.errorbar(xs, means, yerr=stds, marker=MARKERS.get(c, "o"), capsize=3,
                     lw=2, color=COLORS.get(c), label=LABELS.get(c, c))
-    ax.axhline(0.5, ls="--", lw=1, color="#898781", alpha=0.7, label="azar (0.5)")
+    ax.axhline(0.5, ls="--", lw=1, color="#898781", alpha=0.7, label="chance (0.5)")
     ax.set_xscale("log")
     ax.set_xticks(xs)
     ax.get_xaxis().set_major_formatter(plt.matplotlib.ticker.ScalarFormatter())
-    ax.set_xlabel("fracción de etiquetas de entrenamiento (%)")
-    ax.set_ylabel("AUROC OOF (nivel rodilla)")
+    ax.set_xlabel("training-label fraction (%)")
+    ax.set_ylabel("OOF AUROC (knee level)")
     ax.set_ylim(0.45, 0.75)
     ax.grid(True, alpha=0.25)
     ax.legend(frameon=False, fontsize=9)
-    ax.set_title("Eficiencia de etiquetas por procedencia", fontsize=11)
+    ax.set_title("Label efficiency by pretraining provenance", fontsize=11)
     _save(fig, os.path.join(out_dir, "fig_efficiency_curve"))
 
 
@@ -85,9 +85,9 @@ def figure_forest_delta100(multiseed, out_dir):
     ax.axvline(0, ls="--", lw=1, color="#444")
     ax.set_yticks(range(len(order)))
     ax.set_yticklabels([names[k] for k in reversed(order)], fontsize=9)
-    ax.set_xlabel("ΔAUROC (IC95% agrupado, bootstrap por pacientes)")
+    ax.set_xlabel("ΔAUROC (95% pooled CI, patient bootstrap)")
     ax.set_xlim(-0.2, 0.45)
-    ax.set_title("Contrastes de procedencia @100% etiquetas", fontsize=11)
+    ax.set_title("Provenance contrasts @100% labels", fontsize=11)
     ax.grid(True, axis="x", alpha=0.25)
     _save(fig, os.path.join(out_dir, "fig_forest_delta100"))
 
